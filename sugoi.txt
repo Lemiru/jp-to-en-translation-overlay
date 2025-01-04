@@ -1,0 +1,7 @@
+Sugoi Offline Model is a translation model that is a part of Sugoi Toolkit created by MingShiba.
+In order to use it you must first download Sugoi Toolkit from his patreon page (https://www.patreon.com/c/mingshiba/about)
+After downloading and extracting it you will find model files in this location:
+<sugoi toolkit location>/Code/backendServer/Program-Backend/Sugoi-Japanese-Translator/offlineTranslation/models
+(there should be two folders, "ct2Model" and "spmModels").
+Copy model files into folder <JP to EN Translation Overlay location>/models/sugoi_v4model_ctranslate2.
+The application was tested using model from version V10 of Sugoi Toolkit, models from other versions might not work.
