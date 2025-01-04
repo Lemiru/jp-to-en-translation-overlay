@@ -1,5 +1,7 @@
 # JP to EN Translation Overlay
-Application written in Python for reading text from area of the screen and overlaying a translation of it on top of original text
+Application written in Python for reading text from area of the screen and overlaying a translation of it on top of original text.
+
+If you like my project and/or want to check if I'm working on any other projects, consider checking out my [Patreon](https://patreon.com/Lemiru?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink).
 
 ## Requirements
 - OS: Windows 10 Version 2004 or newer
@@ -30,7 +32,9 @@ After starting the program there will appear an overlay window and a configurati
 
 ![](images/application.png)
 
-In the "General" tab you can select a method for performing OCR (Optical Character Recognition) and translation of the detected text as well as picking the font size of displayed translation
+To adjust the overlay position you can drag the red square (top-left corner) to move it and blue square (bottom-right corner) to resize it.
+
+In the "General" tab you can select a method for performing OCR (Optical Character Recognition) and translation of the detected text as well as picking the font size of displayed translation.
 
 Currently supported OCR methods:
 - MangaOCR (default, recommended in most cases)
@@ -69,4 +73,4 @@ Here are some examples of the translation results of the app with original image
 
 ## Known issues
 - When using PaddleOCR, the program might in specific cases incorrectly determine the order of detected text.
-- When used on media with vertical text, the program might in some cases struggle to correctly detect whole blocks of text. In order to work around this problem it is recommended to use significantly lower "Link Threshold" and "Low Text" values
+- When used on media with vertical text, the program might in some cases struggle to correctly detect whole blocks of text. In order to work around this problem it is recommended to use significantly lower "Link Threshold" and "Low Text" values.
