@@ -34,19 +34,23 @@ class CRAFTModel:
         self.square_size = square_size
         self.mag_ratio = mag_ratio
         self.craftModel = craft.CRAFT()
-        self.craftModel.load_state_dict(copyStateDict(torch.load("models/craft/pretrained/craft_mlt_25k.pth")))
         if cuda:
+            self.craftModel.load_state_dict(copyStateDict(torch.load("models/craft/pretrained/craft_mlt_25k.pth")))
             self.craftModel = self.craftModel.cuda()
             self.craftModel = torch.nn.DataParallel(self.craftModel)
             cudnn.benchmark = False
+        else:
+            self.craftModel.load_state_dict(copyStateDict(torch.load("models/craft/pretrained/craft_mlt_25k.pth", map_location=torch.device('cpu'))))
         self.craftModel.eval()
 
         if refiner:
             self.craft_refiner = refinenet.RefineNet()
-            self.craft_refiner.load_state_dict(copyStateDict(torch.load("models/craft/pretrained/craft_refiner_CTW1500.pth")))
             if cuda:
+                self.craft_refiner.load_state_dict(copyStateDict(torch.load("models/craft/pretrained/craft_refiner_CTW1500.pth")))
                 self.craft_refiner = self.craft_refiner.cuda()
                 self.craft_refiner = torch.nn.DataParallel(self.craft_refiner)
+            else:
+                self.craft_refiner.load_state_dict(copyStateDict(torch.load("models/craft/pretrained/craft_refiner_CTW1500.pth", map_location=torch.device('cpu'))))
             self.craft_refiner.eval()
 
     def detect(self, img, text_threshold, link_threshold, low_text):

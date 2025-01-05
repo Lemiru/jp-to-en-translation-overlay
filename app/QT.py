@@ -311,7 +311,8 @@ class PreviewWindow(QWidget):
             self.update_preview(image)
 
     def update_preview(self, image: np.ndarray):
-        cv2.imwrite('preview.png', image)
+        if DEBUG:
+            cv2.imwrite('preview.png', image)
         print(image.shape)
         self.image.resize(image.shape[1], image.shape[0])
         bytes_count = image.data.nbytes
