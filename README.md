@@ -45,6 +45,8 @@ Currently supported translation methods:
 - DeepL
 - Sugoi Offline Translation Model
 
+>**Note**: Without any additional setup only Google Translate method will be available. For DeepL method to become available you must first provide an API key. In order to use Sugoi Model, you'll have to provide it yourself (exact process explained in sugoi.txt).
+
 In the "Preprocessing" tab you will find various options for processing the image before performing OCR, as well as button to show a preview of how the overlay area would be processed. 
 For choosing the best settings I recommend starting by trying out translating with just resizing by 2 and applying slight gaussian blur. 
 If the results are not satisfactory you can apply histogram equalization and/or one of binarization types (most commonly "InvertedWithNegC" will yield best results).
@@ -57,9 +59,6 @@ In the "Text Detection" tab you can adjust values used for detecting text areas 
 - Text threshold (a threshold that controls how certain text detection model must be to classify area as text)
 - Link threshold (a threshold that controls how certain text detection model must be to combine areas that are part of the same text)
 - Low text (value that affects padding of detected text areas. The smaller the value, the more padding will it have)
-
->**Note**: Without any additional setup only Google Translate method will be available. For DeepL method to become available you must first provide an API key. In order to use Sugoi Model, you'll have to provide it yourself (exact process explained in sugoi.txt).
-
 
 ## Examples
 Here are some examples of the translation results of the app with original image for comparison.
