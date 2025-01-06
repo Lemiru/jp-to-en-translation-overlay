@@ -84,7 +84,7 @@ class Master(QObject):
 
 
 class TranslationWorker(QObject):
-    setup_completed = Signal()
+    setup_completed = Signal(bool)
     tl_completed = Signal(np.ndarray)
 
     def __init__(self):
@@ -114,24 +114,32 @@ class TranslationWorker(QObject):
 
             case _:
                 raise ValueError('invalid OCR method')
+        available = SetupWindow.get_available_translations()
+        if CONFIG['general']['translation method'] in available:
+            match CONFIG['general']['translation method']:
+                case 'DeepL':
+                    self.translator = DeeplTranslator(CONFIG['general']['DeepL API key'])
+                    self.loadedTranslator = 'DeepL'
 
-        match CONFIG['general']['translation method']:
-            case 'DeepL':
-                self.translator = DeeplTranslator(CONFIG['general']['DeepL API key'])
-                self.loadedTranslator = 'DeepL'
+                case 'Sugoi':
+                    self.translator = SugoiCT2Translator('models/sugoi_v4model_ctranslate2', cuda=self.cuda)
+                    self.loadedTranslator = 'Sugoi'
 
-            case 'Sugoi':
-                self.translator = SugoiCT2Translator('models/sugoi_v4model_ctranslate2', cuda=self.cuda)
-                self.loadedTranslator = 'Sugoi'
+                case 'Google':
+                    self.translator = GoogleTranslateTranslator()
+                    self.loadedTranslator = 'Google'
 
-            case 'Google':
-                self.translator = GoogleTranslateTranslator()
-                self.loadedTranslator = 'Google'
-
-            case _:
-                raise ValueError('invalid translation method')
+                case _:
+                    raise ValueError('invalid translation method')
+            self.setup_completed.emit(False)
+        else:
+            print('Translation method became unavailable, falling back to Google Translator')
+            self.translator = GoogleTranslateTranslator()
+            self.loadedTranslator = 'Google'
+            CONFIG['general']['translation method'] = 'Google'
+            self.setup_completed.emit(True)
         print('Setup Completed')
-        self.setup_completed.emit()
+
 
     def verify_and_load_models(self):
         OCR = OCRSelect(int(CONFIG['general']['OCR method']))
@@ -534,6 +542,11 @@ class QInputWithLabel(QWidget):
                 if current in value:
                     self.input.setCurrentText(current)
 
+    def set_value(self, value):
+        match self.className:
+            case 'QComboBox':
+                self.input.setCurrentText(value)
+
     @staticmethod
     def update_config(section, name, value):
         CONFIG[section][name] = str(value)
@@ -658,16 +671,18 @@ class SetupWindow(QMainWindow):
             self.overlay.start_overlay(settings)
         self.overlayStarted = not self.overlayStarted
 
-    def on_setup_completed(self):
+    def on_setup_completed(self, set_default_translator=False):
         self.startButton.setText('Start')
         self.startButton.setEnabled(True)
+        if set_default_translator:
+            self.translatorComboBox.set_value('Google')
 
     @staticmethod
     def get_available_translations():
         tl_list = ['Google']
         if CONFIG['general']['deepl api key'] != '':
             tl_list.append('DeepL')
-        if os.path.exists(os.path.join(PATH, 'models/sugoi_v4model_ctranslate2')):
+        if os.path.exists(os.path.join(PATH, 'models/sugoi_v4model_ctranslate2/ct2Model')) and os.path.exists(os.path.join(PATH, 'models/sugoi_v4model_ctranslate2/spmModels')):
             tl_list.append('Sugoi')
         return tl_list
 
@@ -701,7 +716,7 @@ def setup_application(path, cuda=False, debug=False, args=None):
     overlay_window = OverlayWindow(thread_master=master, cuda=cuda)
     worker.tl_completed.connect(overlay_window.update_overlay)
     setup_window = SetupWindow(overlay=overlay_window)
-    worker.setup_completed.connect(setup_window.on_setup_completed)
+    worker.setup_completed.connect(lambda x: setup_window.on_setup_completed(set_default_translator=x))
     setup_window.show()
     overlay_window.show()
     return app, overlay_window, setup_window, master, worker

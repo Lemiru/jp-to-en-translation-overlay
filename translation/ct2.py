@@ -9,9 +9,15 @@ from translation.interface import ITranslator
 
 class SugoiCT2Translator(ITranslator):
     def __init__(self, model_dir, cuda=False):
-        self.model = ctranslate2.Translator(model_dir + '/ct2Model', device='cuda' if cuda else 'cpu')
-        self.tokenizer = spm.SentencePieceProcessor(model_dir + '/spmModels/spm.ja.nopretok.model')
-        self.detokenizer = spm.SentencePieceProcessor(model_dir + '/spmModels/spm.en.nopretok.model')
+        try:
+            self.model = ctranslate2.Translator(model_dir + '/ct2Model', device='cuda' if cuda else 'cpu')
+            self.tokenizer = spm.SentencePieceProcessor(model_dir + '/spmModels/spm.ja.nopretok.model')
+            self.detokenizer = spm.SentencePieceProcessor(model_dir + '/spmModels/spm.en.nopretok.model')
+        except RuntimeError as e:
+            raise RuntimeError('Could not load Sugoi Offline Model. Please make sure all files have been placed correctly.')
+        except OSError as e:
+            raise OSError('Could not find all files of Sugoi Offline Model. Please make sure all files have been placed correctly.')
+
 
     def batch(self, sentences):
         tokenized = self.tokenizer.Encode(sentences, out_type=str)
