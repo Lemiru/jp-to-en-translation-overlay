@@ -4,6 +4,8 @@ import os
 from sys import platform
 from typing import Union
 
+from pynput import keyboard
+
 if platform == "win32":
     from ctypes import windll
 
@@ -340,6 +342,7 @@ class OverlayWindow(QMainWindow):
         super().__init__()
         self.qimg = None
         self.tlInProgress = False
+        self.tlRunning = False
         self.threadMaster = thread_master
         self.threadMaster.tl_setup.emit(cuda)
         self.mss = mss.mss()
@@ -347,6 +350,7 @@ class OverlayWindow(QMainWindow):
         self.windowFlags = Qt.SubWindow | Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint
         self.timer.setInterval(1000)
         self.timer.timeout.connect(self.begin_translation)
+        self.timer.start()
         self.resize(800, 600)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setWindowFlags(self.windowFlags)
@@ -394,21 +398,21 @@ class OverlayWindow(QMainWindow):
         self.image.setVisible(True)
         self.setWindowFlags(self.windowFlags | Qt.WindowTransparentForInput)
         self.show()
-        self.timer.start()
         self.threadMaster.tl_start.emit()
+        self.tlRunning = True
 
     def stop_overlay(self):
+        self.tlRunning = False
         self.resizeWidget.setVisible(True)
         self.moveWidget.setVisible(True)
         self.image.setVisible(False)
         self.image.clear()
         self.setWindowFlags(self.windowFlags & ~Qt.WindowTransparentForInput)
         self.show()
-        self.timer.stop()
         self.lastScreenshot = None
 
     def begin_translation(self):
-        if self.tlInProgress:
+        if self.tlInProgress or not self.tlRunning:
             pass
         else:
             screenshot = np.array(self.take_screenshot())
@@ -555,6 +559,7 @@ class QInputWithLabel(QWidget):
 class SetupWindow(QMainWindow):
     def __init__(self, overlay: OverlayWindow):
         super().__init__()
+        self.setupCompleted = False
         self.setWindowTitle('Translation Overlay')
         self.setFixedSize(325, 425)
         self.startButton = QPushButton('Loading...', parent=self)
@@ -632,7 +637,11 @@ class SetupWindow(QMainWindow):
         self.container.setLayout(self.mainLayout)
         self.setCentralWidget(self.container)
 
+        self.hotkey = keyboard.GlobalHotKeys({'<ctrl>+<shift>+t': self.toggle_overlay})
+        self.hotkey.start()
+
     def closeEvent(self, event):
+        self.hotkey.stop()
         self.overlay.close()
         if DEBUG:
             print({section: dict(CONFIG[section]) for section in CONFIG.sections()})
@@ -640,40 +649,42 @@ class SetupWindow(QMainWindow):
         QApplication.instance().quit()
 
     def toggle_overlay(self):
-        if self.overlayStarted:
-            self.startButton.setText('Start')
-            self.generalOptions.setEnabled(True)
-            self.preprocessingOptions.setEnabled(True)
-            self.textDetectionOptions.setEnabled(True)
-            self.overlay.stop_overlay()
-        else:
-            self.startButton.setText('Stop')
-            self.generalOptions.setEnabled(False)
-            self.preprocessingOptions.setEnabled(False)
-            self.textDetectionOptions.setEnabled(False)
-            settings = {'OCR': OCRSelect(int(CONFIG['general']['OCR method'])),
-                        'translator': CONFIG['general']['translation method'],
-                        'preprocess': CONFIG['preprocessing']['preprocess'] == 'True',
-                        'resize': float(CONFIG['preprocessing']['resize']),
-                        'blur_kernel_size': int(CONFIG['preprocessing']['gaussian blur']),
-                        'equalize': CONFIG['preprocessing']['histogram equalization'] == 'True',
-                        'binarization': BinarizationTypes(int(CONFIG['preprocessing']['binarization type'])),
-                        'blocks': int(CONFIG['preprocessing']['binarization blocks']),
-                        'c': int(CONFIG['preprocessing']['binarization c value']),
-                        'binarization_blur_kernel_size': int(CONFIG['preprocessing']['post binarization gaussian blur']),
-                        'paragraph_detection': ParagraphDetectionTypes(int(CONFIG['text_detection']['paragraph detection'])),
-                        'text_threshold': float(CONFIG['text_detection']['text threshold']),
-                        'link_threshold': float(CONFIG['text_detection']['link threshold']),
-                        'low_text': float(CONFIG['text_detection']['low text']),
-                        'min_japanese_characters': 1,
-                        'font_size': float(CONFIG['general']['font size'])
-                        }
-            self.overlay.start_overlay(settings)
-        self.overlayStarted = not self.overlayStarted
+        if self.setupCompleted:
+            if self.overlayStarted:
+                self.startButton.setText('Start')
+                self.generalOptions.setEnabled(True)
+                self.preprocessingOptions.setEnabled(True)
+                self.textDetectionOptions.setEnabled(True)
+                self.overlay.stop_overlay()
+            else:
+                self.startButton.setText('Stop')
+                self.generalOptions.setEnabled(False)
+                self.preprocessingOptions.setEnabled(False)
+                self.textDetectionOptions.setEnabled(False)
+                settings = {'OCR': OCRSelect(int(CONFIG['general']['OCR method'])),
+                            'translator': CONFIG['general']['translation method'],
+                            'preprocess': CONFIG['preprocessing']['preprocess'] == 'True',
+                            'resize': float(CONFIG['preprocessing']['resize']),
+                            'blur_kernel_size': int(CONFIG['preprocessing']['gaussian blur']),
+                            'equalize': CONFIG['preprocessing']['histogram equalization'] == 'True',
+                            'binarization': BinarizationTypes(int(CONFIG['preprocessing']['binarization type'])),
+                            'blocks': int(CONFIG['preprocessing']['binarization blocks']),
+                            'c': int(CONFIG['preprocessing']['binarization c value']),
+                            'binarization_blur_kernel_size': int(CONFIG['preprocessing']['post binarization gaussian blur']),
+                            'paragraph_detection': ParagraphDetectionTypes(int(CONFIG['text_detection']['paragraph detection'])),
+                            'text_threshold': float(CONFIG['text_detection']['text threshold']),
+                            'link_threshold': float(CONFIG['text_detection']['link threshold']),
+                            'low_text': float(CONFIG['text_detection']['low text']),
+                            'min_japanese_characters': 1,
+                            'font_size': float(CONFIG['general']['font size'])
+                            }
+                self.overlay.start_overlay(settings)
+            self.overlayStarted = not self.overlayStarted
 
     def on_setup_completed(self, set_default_translator=False):
         self.startButton.setText('Start')
         self.startButton.setEnabled(True)
+        self.setupCompleted = True
         if set_default_translator:
             self.translatorComboBox.set_value('Google')
 
