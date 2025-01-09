@@ -11,7 +11,8 @@ If you like my project and/or want to check if I'm working on any other projects
 >**Note**: Application might still work on platforms other than Windows, but they haven't been tested yet and there might be some platform specific issues.
 
 ## Setup
-I recommend creating a Virtual Environment for this project.
+I highly recommend creating a Virtual Environment for this project. If you don't know how create and use one, you can find read about it [here](https://www.geeksforgeeks.org/create-virtual-environment-using-venv-python/).
+
 Before installing dependencies from requirements.txt you should install [PyTorch](https://pytorch.org/get-started/locally/#start-locally) and [PaddlePaddle](https://www.paddlepaddle.org.cn/en/install/quick?docurl=/documentation/docs/en/develop/install/pip/windows-pip_en.html) libraries manually.
 
 If you want to use it with NVIDIA GPU you'll have to install CUDA Toolkit.
@@ -60,6 +61,8 @@ In the "Text Detection" tab you can adjust values used for detecting text areas 
 - Link threshold (a threshold that controls how certain text detection model must be to combine areas that are part of the same text)
 - Low text (value that affects padding of detected text areas. The smaller the value, the more padding will it have)
 
+After setting everything up all you need to do now is to press the "Start" button (or use the Ctrl + Shift + T hotkey) in order to activate the overlay.
+
 ## Examples
 Here are some examples of the translation results of the app with original image for comparison.
 
@@ -69,6 +72,9 @@ Here are some examples of the translation results of the app with original image
 | ![](images/before/image2.png) | ![](images/after/image2.png) |
 | ![](images/before/image3.png) | ![](images/after/image3.png) |
 
+You can also check out a video demonstration here:
+
+[![](http://img.youtube.com/vi/GjZB9QJZCFk/0.jpg)](https://youtu.be/GjZB9QJZCFk)
 
 ## Known issues
 - When using PaddleOCR, the program might in specific cases incorrectly determine the order of detected text.
