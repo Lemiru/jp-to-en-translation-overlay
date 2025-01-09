@@ -60,9 +60,14 @@ def draw_text(img, boxes, texts, max_font_size=10.0, padding_x=0, padding_y=0):
     pil_image = Image.fromarray(img)
     draw = ImageDraw.Draw(pil_image)
     for box, text in zip(boxes, texts):
-        text = text.split()
+        text = text.splitlines()
+        words = []
+        for line in text:
+            words.extend(line.split())
+            words.extend('\n')
+        words.pop()
         multiline_text = None
-        for word in text:
+        for word in words:
             if multiline_text is None:
                 multiline_text = word
                 continue

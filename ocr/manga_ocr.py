@@ -33,6 +33,28 @@ class MangaOcrBatchProcessing:
         decoded = post_process(decoded)
         return decoded
 
+    def separate_per_paragraph(self, paragraph_boxes, full_image):
+        images = []
+        paragraph_idx = []
+        count = 0
+        for x in paragraph_boxes:
+            if x[1] is None:
+                images.append(full_image[x[0][0][1]:x[0][1][1], x[0][0][0]:x[0][1][0]])
+                paragraph_idx.append(count)
+            else:
+                for y in x[1]:
+                    images.append(full_image[y[0][1]:y[1][1], y[0][0]:y[1][0]])
+                    paragraph_idx.append(count)
+            count += 1
+        if len(images) == 1:
+            texts = [self.single(images[0])]
+        else:
+            texts = self.batch(images)
+        grouped_texts = ['' for i in range(count)]
+        for x, y in zip(texts, paragraph_idx):
+            grouped_texts[y] = grouped_texts[y] + x + ' '
+        return grouped_texts
+
 
 def post_process(text):
     text = "".join(text.split())

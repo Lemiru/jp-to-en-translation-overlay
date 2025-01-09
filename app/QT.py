@@ -40,6 +40,7 @@ DEBUG = False
 def create_default_config():
     CONFIG['general'] = {
         'OCR method': '0',
+        'OCR Paragraph per sentence': 'False',
         'translation method': 'Google',
         'font size': '12.0',
         'deepl api key': ''
@@ -172,6 +173,10 @@ class TranslationWorker(QObject):
                 case _:
                     raise ValueError('invalid translation method')
 
+    def replace_in_texts(self, texts):
+        texts = [text.replace(":", ":\n") for text in texts]
+        return texts
+
     def translate(self, array: np.ndarray, settings: dict):
         t1 = time.time()
         if settings['preprocess']:
@@ -191,21 +196,29 @@ class TranslationWorker(QObject):
                 cv2.polylines(debug_image, [np.array(x/settings['resize'], dtype=int)], True, (0, 255, 0), 1)
             cv2.imwrite('debug_image.png', debug_image)
         boxes_for_detection = prepare_for_text_detection(boxes, image_size, paragraph=settings['paragraph_detection'])
+        print(boxes_for_detection)
         if len(boxes_for_detection) == 0:
             new_image = create_new_image((array.shape[0], array.shape[1], 4))
             self.tl_completed.emit(new_image)
             return
-        for_ocr = [processed[x[0][0][1]:x[0][1][1], x[0][0][0]:x[0][1][0]] for x in boxes_for_detection]
-        match settings['OCR']:
-            case OCRSelect.MangaOCR:
-                if len(for_ocr) == 1:
-                    texts = [self.mangaOCR.single(for_ocr[0])]
-                else:
-                    texts = self.mangaOCR.batch(for_ocr)
-            case OCRSelect.PaddleOCR:
-                texts = self.paddleOCR.batch(for_ocr)
-            case _:
-                raise ValueError('Incorrect OCR method')
+        if settings['separate_ocr_per_paragraph_line'] and settings['OCR'] != OCRSelect.PaddleOCR and settings['paragraph_detection'] != ParagraphDetectionTypes.NoDetection:
+            match settings['OCR']:
+                case OCRSelect.MangaOCR:
+                    texts = self.mangaOCR.separate_per_paragraph(boxes_for_detection, processed)
+                case _:
+                    raise ValueError('Incorrect OCR method')
+        else:
+            for_ocr = [processed[x[0][0][1]:x[0][1][1], x[0][0][0]:x[0][1][0]] for x in boxes_for_detection]
+            match settings['OCR']:
+                case OCRSelect.MangaOCR:
+                        if len(for_ocr) == 1:
+                            texts = [self.mangaOCR.single(for_ocr[0])]
+                        else:
+                            texts = self.mangaOCR.batch(for_ocr)
+                case OCRSelect.PaddleOCR:
+                    texts = self.paddleOCR.batch(for_ocr)
+                case _:
+                    raise ValueError('Incorrect OCR method')
 
         if DEBUG:
             print(texts)
@@ -225,7 +238,7 @@ class TranslationWorker(QObject):
                 cv2.imwrite('debug_filtered.png', debug_image)
         if self.lastTranslation is None or filtered_texts != self.lastTranslation[0]:
             new_image = draw_boxes(array, filtered_boxes, 9)
-            translated = self.translator.batch(filtered_texts)
+            translated = self.replace_in_texts(self.translator.batch(filtered_texts))
             if DEBUG:
                 print(filtered_texts)
                 print(translated)
@@ -296,6 +309,7 @@ class PreviewWindow(QWidget):
 
     def show_processed_image(self, image: np.ndarray):
         settings = {'OCR': OCRSelect(int(CONFIG['general']['OCR method'])),
+                    'separate_ocr_per_paragraph_line': bool(CONFIG['general']['ocr paragraph per sentence']),
                     'translator': CONFIG['general']['translation method'],
                     'preprocess': CONFIG['preprocessing']['preprocess'] == 'True',
                     'resize': float(CONFIG['preprocessing']['resize']),
@@ -662,6 +676,7 @@ class SetupWindow(QMainWindow):
                 self.preprocessingOptions.setEnabled(False)
                 self.textDetectionOptions.setEnabled(False)
                 settings = {'OCR': OCRSelect(int(CONFIG['general']['OCR method'])),
+                            'separate_ocr_per_paragraph_line': bool(CONFIG['general']['ocr paragraph per sentence']),
                             'translator': CONFIG['general']['translation method'],
                             'preprocess': CONFIG['preprocessing']['preprocess'] == 'True',
                             'resize': float(CONFIG['preprocessing']['resize']),
